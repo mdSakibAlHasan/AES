@@ -332,15 +332,6 @@ void shift_row(char matrix[16][3], int swap_array[])
 }
 
 
-void input(char message[])
-{
-    cin.getline(message, 17);
-    //cin.getline(key, 17);
-
-
-
-}
-
 
 
 void substitution_step(char matrix[16][3])
@@ -360,7 +351,6 @@ void add_round_key(char matrix[16][3], int start)
 
 
     for(int i=0;i<16;i++){
-        //cout<<sum[0][i]<<" "<<sum[0][i]<<endl;
         sum[0][i] = sum[0][i]^sum[1][i];
 
         matrix[i][1] = hexadecimal[sum[0][i]%16];
@@ -372,10 +362,7 @@ void add_round_key(char matrix[16][3], int start)
 
 void encryption(char message[16][3])
 {
-    //printer_check(message);
-    
     add_round_key(message,0);
-    //printer_check(message);
     for(int i=0;i<9;i++){
         substitution_step(message);
         shift_row(message,shift_swap_array);
@@ -386,34 +373,9 @@ void encryption(char message[16][3])
     shift_row(message,shift_swap_array);
     add_round_key(message,40);
     
-    cout<<"After last step"<<endl;
-    printer_check(message);
+    // cout<<"After last step"<<endl;
+    // printer_check(message);
 }
-
-void substitution(char message[])
-{
-    //for later input section
-    input(message);
-    char block[16][3];
-    int remainder,result;
-
-    for(int i=0;i<16;i++){
-        block[i][1] = hexadecimal[(int)message[i]%16];      //conver decimal to hexadecimal
-        block[i][0] = hexadecimal[(int)message[i]/16];
-
-                //substitution byte
-
-        substitution_byte(block[i]);
-    }
-
-    // printer_check(block);
-    // shift_row(block);
-    // printer_check(block);
-    // mix_column(block);
-    // printer_check(block);
-}
-
-
 
 
 
@@ -426,14 +388,9 @@ void decryption(char message[16][3])
     printer_check(message);
     for(int i=9;i>0;i--){
         shift_row(message,inverse_shift_row_array);
-        //cout<<"after shift row"<<endl;
-       // printer_check(message);
         inverse_substitution_step(message);
-        //printer_check(message);
         add_round_key(message,i*4);
-        //printer_check(message);
         inverse_mix_column(message);
-        //printer_check(message);
     }
     shift_row(message,inverse_shift_row_array);
     inverse_substitution_step(message);
@@ -536,19 +493,135 @@ void key_generation(char key_matrix[16][3])
 
 
 
+void write_in_file(char message[16][3],string file_name)
+{
+    int k;
+    ofstream fin;
+    fin.open(file_name,ios::app);
+    if(!fin.is_open()){
+        cout<<"File can't open "<<endl;
+        exit(0);
+    }
+    
+    for(int i=0;i<16;i++){
+        fin<<message[i][0]<<message[i][1];
+    }
+    
+}
+
+
+void restore_byte(char message[16][3],string file_name)
+{
+    int k;
+    ofstream fin;
+    fin.open(file_name,ios::app);
+    if(!fin.is_open()){
+        cout<<"File can't open "<<endl;
+        exit(0);
+    }
+    
+    for(int i=0;i<16;i++){
+        k = hex_to_decimal(message[i][0])*16 + hex_to_decimal(message[i][1]);
+        fin<<(char)k;
+    }
+    
+}
+
+
+
+void encryption_input(string in_file_name, string out_file_name)
+{
+    char key[17],key_block[16][3],byte,message[16][3];
+    cout<<"Input your key(16 byte take only): ";
+    cin.getline(key, 17);
+    cout<<"Your key is: "<<key<<endl;
+
+    for(int i=0;i<16;i++){
+        key_block[i][1] = hexadecimal[(int)key[i]%16];      //conver decimal to hexadecimal
+        key_block[i][0] = hexadecimal[(int)key[i]/16];
+    }
+
+    key_generation(key_block);
+
+    ifstream input_file(in_file_name);
+    if(!input_file.is_open()){
+        cout<<in_file_name<<" file can't open"<<endl;
+        exit(0);
+    }
+
+    //read from file
+    int counter=0;
+    while(input_file.get(byte)){
+        message[counter][1] = hexadecimal[(int)byte%16];      //conver decimal to hexadecimal
+        message[counter][0] = hexadecimal[(int)byte/16];
+        
+        if(++counter == 16){ 
+            encryption(message);                           //this function is encryption or depryption
+            write_in_file(message,out_file_name);
+            counter = 0;
+        }
+    }
+
+    //fill rest of the 16 byte with 00
+    // for( ;counter<16;counter++){
+    //     message[counter][0] = '0';
+    //     message[counter][1] = '0';
+    // }
+    // encryption(message);                              //this function is encryption or depryption
+    // write_in_file(message,out_file_name);
+}
+
+
+
+void decryption_input(string in_file_name, string out_file_name)
+{
+    char key[17],key_block[16][3],byte,message[16][3];
+    cout<<"Input your key(16 byte take only): ";
+    cin.getline(key, 17);
+    cout<<"Your key is: "<<key<<endl;
+
+    for(int i=0;i<16;i++){
+        key_block[i][1] = hexadecimal[(int)key[i]%16];      //conver decimal to hexadecimal
+        key_block[i][0] = hexadecimal[(int)key[i]/16];
+    }
+
+    key_generation(key_block);
+
+    ifstream input_file(in_file_name);
+    if(!input_file.is_open()){
+        cout<<in_file_name<<" file can't open"<<endl;
+        exit(0);
+    }
+
+    //read from file
+    int counter=0;
+    while(input_file.get(byte)){
+        message[counter][0] = byte; 
+        input_file.get(byte);
+        message[counter][1] = byte;
+
+        if(++counter == 16){ 
+            decryption(message);                           //this function is encryption or depryption
+            restore_byte(message,out_file_name);
+            counter = 0;
+        }
+    }
+
+    //fill rest of the 16 byte with 00
+    // for( ;counter<16;counter++){
+    //     message[counter][0] = '0';
+    //     message[counter][1] = '0';
+    // }
+    // decryption(message);                              //this function is encryption or depryption
+    // restore_byte(message,out_file_name);
+}
+
+
 int main()
 {
 
-    char message[16][3]={"01","89","FE","76","23","AB","DC","54","45","CD","BA","32","67","EF","98","10"};
-    char message2[16][3]={"54","77","6F","20","4F","6E","65","20","4E","69","6E","65","20","54","77","6F"};
-    char key_matrix[16][3]={"54","68","61","74","73","20","6D","79","20","4B","75","6E","67","20","46","75"};
-        char keymatrix[16][3]={"0F","15","71","C9","47","D9","E8","59","0C","B7","AD","D6","AF","7F","67","98"};
+    encryption_input("output.txt","another.txt");
+    decryption_input("another.txt","input.txt");
 
-        char inverse[16][3] = {"FF","08","69","64","0B","53","34","14","84","BF","AB","8F","4A","7C","43","B9"};
-    //substitution(message);
 
-    key_generation(keymatrix);
-
-    //encryption(message);
-    decryption(inverse);
 }
