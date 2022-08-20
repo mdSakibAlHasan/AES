@@ -153,14 +153,8 @@ struct sakib
 
 struct sakib word[44],temp_word,RC_word;
 
-void printer_check(char ma[16][3])
-{
-    cout<<endl;
-    for(int i=0;i<16;i++){
-        cout<<ma[i]<<" ";
-    }
-    cout<<endl;
-}
+
+//--------------------------------------Encryption code start---------------------------------\
 
 
 int hex_to_decimal(char hex)
@@ -185,38 +179,22 @@ void hexa_to_binary(char hex[], char binary_number[])
 
 
 
-void substitution_byte(char hex[])
+void substitution(char hex[],char box[16][16][3])       //FOR ONE BYTE SUBSTITUITION
 {
     int row = hex_to_decimal(hex[0]);
     int column = hex_to_decimal(hex[1]);
 
-    strcpy(hex,s_box[row][column]);
-}
-
-void substitution(char hex[],char m[16][16][3])
-{
-    int row = hex_to_decimal(hex[0]);
-    int column = hex_to_decimal(hex[1]);
-
-    strcpy(hex,m[row][column]);
+    strcpy(hex,box[row][column]);
 }
 
 
-void inverse_substitution_byte(char hex[])
-{
-    int row = hex_to_decimal(hex[0]);
-    int column = hex_to_decimal(hex[1]);
-
-    strcpy(hex,inverse_s_box[row][column]);
-}
-
-
-void inverse_substitution_step(char message[][3])
+void substitution(char box[16][16][3],char message[][3])            //FOR 16 BYTE SUBSTITUTION
 {
     for(int i=0;i<16;i++){
-        inverse_substitution_byte(message[i]);
-    }
+        substitution(message[i],box);
+    }    
 }
+
 
 
 void XOR_value(char temp[4][3])
@@ -333,14 +311,6 @@ void shift_row(char matrix[16][3], int swap_array[])
 
 
 
-
-void substitution_step(char matrix[16][3])
-{
-    for(int i=0;i<16;i++){
-        substitution_byte(matrix[i]);
-    }
-}
-
 void add_round_key(char matrix[16][3], int start)
 {
     int sum[2][16];
@@ -364,17 +334,15 @@ void encryption(char message[16][3])
 {
     add_round_key(message,0);
     for(int i=0;i<9;i++){
-        substitution_step(message);
+        substitution(s_box,message);
         shift_row(message,shift_swap_array);
         mix_column(message);
         add_round_key(message,(i+1)*4);
     }
-    substitution_step(message);
+    substitution(s_box,message);
     shift_row(message,shift_swap_array);
     add_round_key(message,40);
     
-    // cout<<"After last step"<<endl;
-    // printer_check(message);
 }
 
 
@@ -383,21 +351,17 @@ void encryption(char message[16][3])
 
 void decryption(char message[16][3])
 {
-    printer_check(message);
     add_round_key(message,40);
-    printer_check(message);
     for(int i=9;i>0;i--){
         shift_row(message,inverse_shift_row_array);
-        inverse_substitution_step(message);
+        substitution(inverse_s_box,message);
         add_round_key(message,i*4);
         inverse_mix_column(message);
     }
     shift_row(message,inverse_shift_row_array);
-    inverse_substitution_step(message);
+    substitution(inverse_s_box,message);
     add_round_key(message,0);
 
-     cout<<"After last step in decryption"<<endl;
-    printer_check(message);
 }
 
 
@@ -407,15 +371,6 @@ void decryption(char message[16][3])
 
 
 char RC[][3] = {"00","01","02","04","08","10","20","40","80","1B","36"};
-
-void check(struct sakib a)
-{
-    for(int i=0;i<4;i++){
-        cout<<a.data[i]<<" ";
-    }
-    cout<<endl;
-}
-
 
 void XOR_key_generation(struct sakib *shift_word, struct sakib x)
 {
@@ -451,7 +406,7 @@ void Rotword(struct sakib *shift_word)
 void subWord(struct sakib *shif_word)
 {
     for(int i=0;i<4;i++){
-        substitution_byte(shif_word->data[i]);
+        substitution(shif_word->data[i],s_box);
     }
 }
 
@@ -482,13 +437,6 @@ void key_generation(char key_matrix[16][3])
         
     }
 
-    // for(int i=0;i<44;i++){
-    //     for(int j=0;j<4;j++){
-    //         cout<<word[i].data[j]<<" ";
-    //     }
-    //     cout<<endl;
-    // }
-
 }
 
 
@@ -507,6 +455,7 @@ void write_in_file(char message[16][3],string file_name)
         fin<<message[i][0]<<message[i][1];
     }
     
+    fin.close();
 }
 
 
@@ -524,7 +473,8 @@ void restore_byte(char message[16][3],string file_name)
         k = hex_to_decimal(message[i][0])*16 + hex_to_decimal(message[i][1]);
         fin<<(char)k;
     }
-    
+
+    fin.close();
 }
 
 
