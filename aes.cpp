@@ -153,8 +153,7 @@ struct sakib
 
 struct sakib word[44],temp_word,RC_word;
 
-
-//--------------------------------------Encryption code start---------------------------------\
+//----------------------------------------basic function--------------------
 
 
 int hex_to_decimal(char hex)
@@ -188,186 +187,23 @@ void substitution(char hex[],char box[16][16][3])       //FOR ONE BYTE SUBSTITUI
 }
 
 
-void substitution(char box[16][16][3],char message[][3])            //FOR 16 BYTE SUBSTITUTION
-{
-    for(int i=0;i<16;i++){
-        substitution(message[i],box);
-    }    
-}
-
-
-
-void XOR_value(char temp[4][3])
-{
-    //xor four value a^b here a,b are decimal ; result will dcimal and store temp[0]
-    int sum[4];
-    for(int i=0;i<4;i++){
-        sum[i] = hex_to_decimal(temp[i][0])*16 + hex_to_decimal(temp[i][1]);
-    }
-
-    for(int i=1;i<4;i++){
-        sum[0] = sum[0]^sum[i];
-    }
-
-    temp[0][1] = hexadecimal[sum[0]%16];      //conver decimal to hexadecimal
-    temp[0][0] = hexadecimal[sum[0]/16];
-
-}
-
-
-
-void mix_column(char matrix[16][3])
-{
-    int fixed_matrix[][4]={2,3,1,1,
-                        1,2,3,1,
-                        1,1,2,3,
-                        3,1,1,2};
-    char new_matrix[4][4][3];
-
-    for(int i=0;i<4;i++){
-        for(int j=0;j<4;j++){
-            char temp[4][3];
-            for(int k=0;k<4;k++){
-                strcpy(temp[k],matrix[(k*4)+j]);
-                if(fixed_matrix[i][k] == 2){
-                    substitution(temp[k],m2);
-                }
-                else if(fixed_matrix[i][k] == 3){
-                    substitution(temp[k],m3);
-                }
-            }
-
-            XOR_value(temp);
-            strcpy(new_matrix[i][j],temp[0]);
-        }
-    }
-
-    for(int i=0;i<16;i++){                          //copy to original array
-        strcpy(matrix[i],new_matrix[i/4][i%4]);
-    }
-
-}
-
-
-void inverse_mix_column(char matrix[16][3])
-{
-    int fixed_matrix[][4]={14,11,13,9,
-                            9,14,11,13,
-                            13,9,14,11,
-                            11,13,9,14};
-    char new_matrix[4][4][3];
-
-    for(int i=0;i<4;i++){
-        for(int j=0;j<4;j++){
-            char temp[4][3];
-            for(int k=0;k<4;k++){
-                strcpy(temp[k],matrix[(k*4)+j]);
-                if(fixed_matrix[i][k] == 9){
-                    substitution(temp[k],m9);
-                }
-                else if(fixed_matrix[i][k] == 11){
-                    substitution(temp[k],m11);
-                }
-                else if(fixed_matrix[i][k] == 13){
-                    substitution(temp[k],m13);
-                }
-                else if(fixed_matrix[i][k] == 14){
-                    substitution(temp[k],m14);
-                }
-            }
-
-            XOR_value(temp);
-            strcpy(new_matrix[i][j],temp[0]);
-        }
-    }
-
-    for(int i=0;i<16;i++){                          //copy to original array
-        strcpy(matrix[i],new_matrix[i/4][i%4]);
-    }
-
-}
-
-
-
-int inverse_shift_row_array[] = {0,1,2,3,7,4,5,6,10,11,8,9,13,14,15,12};
-int shift_swap_array[16]={0,1,2,3,5,6,7,4,10,11,8,9,15,12,13,14};
-
-void shift_row(char matrix[16][3], int swap_array[])
-{
-    char temp_array[16][3];
-    
-
-    for(int k=0;k<16;k++){
-        strcpy(temp_array[k],matrix[k]);
-    }
-
-
-    for(int i=0;i<16;i++){
-        if(i != swap_array[i]){
-          strcpy(matrix[i], temp_array[swap_array[i]]);
-        } 
-    }
-}
-
-
-
-void add_round_key(char matrix[16][3], int start)
-{
-    int sum[2][16];
-    for(int i=0;i<16;i++){
-        sum[0][i] = hex_to_decimal(matrix[i][0])*16 + hex_to_decimal(matrix[i][1]);
-        sum[1][i] = hex_to_decimal(word[(i%4)+start].data[(i/4)][0])*16 + hex_to_decimal(word[(i%4)+start].data[(i/4)][1]);
-    }
-
-
-    for(int i=0;i<16;i++){
-        sum[0][i] = sum[0][i]^sum[1][i];
-
-        matrix[i][1] = hexadecimal[sum[0][i]%16];
-        matrix[i][0] = hexadecimal[sum[0][i]/16];
-    }
-    
-}
-
-
-void encryption(char message[16][3])
-{
-    add_round_key(message,0);
-    for(int i=0;i<9;i++){
-        substitution(s_box,message);
-        shift_row(message,shift_swap_array);
-        mix_column(message);
-        add_round_key(message,(i+1)*4);
-    }
-    substitution(s_box,message);
-    shift_row(message,shift_swap_array);
-    add_round_key(message,40);
-    
-}
-
-
-
-
-
-void decryption(char message[16][3])
-{
-    add_round_key(message,40);
-    for(int i=9;i>0;i--){
-        shift_row(message,inverse_shift_row_array);
-        substitution(inverse_s_box,message);
-        add_round_key(message,i*4);
-        inverse_mix_column(message);
-    }
-    shift_row(message,inverse_shift_row_array);
-    substitution(inverse_s_box,message);
-    add_round_key(message,0);
-
-}
-
-
 
 
 //----------------------------key generation ---------------------------------------------
+
+
+void input_key(char key[])
+{
+    char temp_key[50];
+    cout<<"Input your key(16 byte take only): ";
+    cin.getline(temp_key,50);
+    if(strlen(temp_key)<16){
+        cout<<"Your key is too small: ";
+    }
+    copy(temp_key,temp_key+16,key);
+    cout<<"Your key is: "<<key<<endl;
+}
+
 
 
 char RC[][3] = {"00","01","02","04","08","10","20","40","80","1B","36"};
@@ -441,6 +277,131 @@ void key_generation(char key_matrix[16][3])
 
 
 
+
+//--------------------------------------Encryption code start---------------------------------\
+
+
+
+void substitution(char box[16][16][3],char message[][3])            //FOR 16 BYTE SUBSTITUTION
+{
+    for(int i=0;i<16;i++){
+        substitution(message[i],box);
+    }    
+}
+
+
+
+void XOR_value(char temp[4][3])
+{
+    //xor four value a^b here a,b are decimal ; result will dcimal and store temp[0]
+    int sum[4];
+    for(int i=0;i<4;i++){
+        sum[i] = hex_to_decimal(temp[i][0])*16 + hex_to_decimal(temp[i][1]);
+    }
+
+    for(int i=1;i<4;i++){
+        sum[0] = sum[0]^sum[i];
+    }
+
+    temp[0][1] = hexadecimal[sum[0]%16];      //conver decimal to hexadecimal
+    temp[0][0] = hexadecimal[sum[0]/16];
+
+}
+
+
+
+void mix_column(char matrix[16][3])
+{
+    int fixed_matrix[][4]={2,3,1,1,
+                        1,2,3,1,
+                        1,1,2,3,
+                        3,1,1,2};
+    char new_matrix[4][4][3];
+
+    for(int i=0;i<4;i++){
+        for(int j=0;j<4;j++){
+            char temp[4][3];
+            for(int k=0;k<4;k++){
+                strcpy(temp[k],matrix[(k*4)+j]);
+                if(fixed_matrix[i][k] == 2){
+                    substitution(temp[k],m2);
+                }
+                else if(fixed_matrix[i][k] == 3){
+                    substitution(temp[k],m3);
+                }
+            }
+
+            XOR_value(temp);
+            strcpy(new_matrix[i][j],temp[0]);
+        }
+    }
+
+    for(int i=0;i<16;i++){                          //copy to original array
+        strcpy(matrix[i],new_matrix[i/4][i%4]);
+    }
+
+}
+
+
+
+
+
+int inverse_shift_row_array[] = {0,1,2,3,7,4,5,6,10,11,8,9,13,14,15,12};
+int shift_swap_array[16]={0,1,2,3,5,6,7,4,10,11,8,9,15,12,13,14};
+
+void shift_row(char matrix[16][3], int swap_array[])
+{
+    char temp_array[16][3];
+    
+
+    for(int k=0;k<16;k++){
+        strcpy(temp_array[k],matrix[k]);
+    }
+
+
+    for(int i=0;i<16;i++){
+        if(i != swap_array[i]){
+          strcpy(matrix[i], temp_array[swap_array[i]]);
+        } 
+    }
+}
+
+
+
+void add_round_key(char matrix[16][3], int start)
+{
+    int sum[2][16];
+    for(int i=0;i<16;i++){
+        sum[0][i] = hex_to_decimal(matrix[i][0])*16 + hex_to_decimal(matrix[i][1]);
+        sum[1][i] = hex_to_decimal(word[(i%4)+start].data[(i/4)][0])*16 + hex_to_decimal(word[(i%4)+start].data[(i/4)][1]);
+    }
+
+
+    for(int i=0;i<16;i++){
+        sum[0][i] = sum[0][i]^sum[1][i];
+
+        matrix[i][1] = hexadecimal[sum[0][i]%16];
+        matrix[i][0] = hexadecimal[sum[0][i]/16];
+    }
+    
+}
+
+
+void encryption(char message[16][3])
+{
+    add_round_key(message,0);
+    for(int i=0;i<9;i++){
+        substitution(s_box,message);
+        shift_row(message,shift_swap_array);
+        mix_column(message);
+        add_round_key(message,(i+1)*4);
+    }
+    substitution(s_box,message);
+    shift_row(message,shift_swap_array);
+    add_round_key(message,40);
+    
+}
+
 void write_in_file(char message[16][3],string file_name)
 {
     int k;
@@ -459,29 +420,9 @@ void write_in_file(char message[16][3],string file_name)
 }
 
 
-void restore_byte(char message[16][3],string file_name)
-{
-    int k;
-    ofstream fin;
-    fin.open(file_name,ios::app);
-    if(!fin.is_open()){
-        cout<<"File can't open "<<endl;
-        exit(0);
-    }
-    
-    for(int i=0;i<16;i++){
-        k = hex_to_decimal(message[i][0])*16 + hex_to_decimal(message[i][1]);
-        fin<<(char)k;
-    }
-
-    fin.close();
-}
-
-
-
 void encryption_input(string in_file_name, string out_file_name)
 {
-    char key[17],key_block[16][3],byte,message[16][3];
+     char key[17],key_block[16][3],byte,message[16][3];
     cout<<"Input your key(16 byte take only): ";
     cin.getline(key, 17);
     cout<<"Your key is: "<<key<<endl;
@@ -515,7 +456,7 @@ void encryption_input(string in_file_name, string out_file_name)
     //fill rest of the 16 byte with 00
     // for( ;counter<16;counter++){
     //     message[counter][0] = '0';
-    //     message[counter][1] = '0';
+    //     message[counter][1] = 'A';
     // }
     // encryption(message);                              //this function is encryption or depryption
     // write_in_file(message,out_file_name);
@@ -523,9 +464,92 @@ void encryption_input(string in_file_name, string out_file_name)
 
 
 
+//--------------------------------Decryption input--------------------------------
+
+
+void inverse_mix_column(char matrix[16][3])
+{
+    int fixed_matrix[][4]={14,11,13,9,
+                            9,14,11,13,
+                            13,9,14,11,
+                            11,13,9,14};
+    char new_matrix[4][4][3];
+
+    for(int i=0;i<4;i++){
+        for(int j=0;j<4;j++){
+            char temp[4][3];
+            for(int k=0;k<4;k++){
+                strcpy(temp[k],matrix[(k*4)+j]);
+                if(fixed_matrix[i][k] == 9){
+                    substitution(temp[k],m9);
+                }
+                else if(fixed_matrix[i][k] == 11){
+                    substitution(temp[k],m11);
+                }
+                else if(fixed_matrix[i][k] == 13){
+                    substitution(temp[k],m13);
+                }
+                else if(fixed_matrix[i][k] == 14){
+                    substitution(temp[k],m14);
+                }
+            }
+
+            XOR_value(temp);
+            strcpy(new_matrix[i][j],temp[0]);
+        }
+    }
+
+    for(int i=0;i<16;i++){                          //copy to original array
+        strcpy(matrix[i],new_matrix[i/4][i%4]);
+    }
+
+}
+
+
+
+
+void decryption(char message[16][3])
+{
+    add_round_key(message,40);
+    for(int i=9;i>0;i--){
+        shift_row(message,inverse_shift_row_array);
+        substitution(inverse_s_box,message);
+        add_round_key(message,i*4);
+        inverse_mix_column(message);
+    }
+    shift_row(message,inverse_shift_row_array);
+    substitution(inverse_s_box,message);
+    add_round_key(message,0);
+
+}
+
+
+
+
+
+void restore_byte(char message[16][3],string file_name)
+{
+    int k;
+    ofstream fin;
+    fin.open(file_name,ios::app);
+    if(!fin.is_open()){
+        cout<<"File can't open "<<endl;
+        exit(0);
+    }
+    
+    for(int i=0;i<16;i++){
+        k = hex_to_decimal(message[i][0])*16 + hex_to_decimal(message[i][1]);
+        fin<<(char)k;
+    }
+
+    fin.close();
+}
+
+
+
 void decryption_input(string in_file_name, string out_file_name)
 {
-    char key[17],key_block[16][3],byte,message[16][3];
+     char key[17],key_block[16][3],byte,message[16][3];
     cout<<"Input your key(16 byte take only): ";
     cin.getline(key, 17);
     cout<<"Your key is: "<<key<<endl;
@@ -557,21 +581,15 @@ void decryption_input(string in_file_name, string out_file_name)
         }
     }
 
-    //fill rest of the 16 byte with 00
-    // for( ;counter<16;counter++){
-    //     message[counter][0] = '0';
-    //     message[counter][1] = '0';
-    // }
-    // decryption(message);                              //this function is encryption or depryption
-    // restore_byte(message,out_file_name);
 }
+
+
 
 
 int main()
 {
-
-    encryption_input("output.txt","another.txt");
-    decryption_input("another.txt","input.txt");
-
-
+    //char key[17];
+    encryption_input("input.txt","another.txt");
+    
+    decryption_input("another.txt","output.txt");
 }
